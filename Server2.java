@@ -16,6 +16,9 @@ public class Server2 {
     public static void main(String[] args) {
         parseServerList(SERVER_LIST); // Parse the server list and populate the `servers` list
 
+        // Start the background connection checking thread
+        startConnectionCheckingThread();
+
         // Start the server to listen for incoming connections
         new Thread(Server2::startServer).start();
 
@@ -70,6 +73,20 @@ public class Server2 {
             e.printStackTrace();
         }
     }
+    
+    private static void startConnectionCheckingThread() {
+        new Thread(() -> {
+            while (true) {
+                connectToServers(); // Attempt connections
+                try {
+                    Thread.sleep(5000); // Wait 5 seconds before checking again
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+    
 
     /**
      * Connects to other servers in the network.
@@ -77,25 +94,20 @@ public class Server2 {
     private static void connectToServers() {
         for (ServerInfo server : servers) {
             if (server.id == SERVER_ID) continue; // Skip connecting to self
-
-            while (true) {
+    
+            // Only try to connect if we haven't already connected to this server
+            if (!connections.containsKey(server.id)) {
                 try {
-                    Socket socket = new Socket(server.host, server.port); // Connect to the server
+                    Socket socket = new Socket(server.host, server.port); // Attempt to connect
                     connections.put(server.id, socket); // Store the connection
                     System.out.println("Server " + SERVER_ID + " connected to Server " + server.id);
-                    break; // Exit loop on successful connection
                 } catch (IOException e) {
-                    // Retry the connection after 1 second
-                    System.out.println("Server " + SERVER_ID + " retrying connection to Server " + server.id);
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ie) {
-                        ie.printStackTrace();
-                    }
+                    //System.out.println("Server " + SERVER_ID + " could not connect to Server " + server.id);
                 }
             }
         }
     }
+    
 
     /**
      * Broadcasts a message to all connected servers.
