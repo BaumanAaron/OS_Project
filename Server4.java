@@ -34,7 +34,7 @@ public class Server4 {
         String[] serverEntries = serverList.split(","); // Split the list into individual server entries
         for (int i = 0; i < serverEntries.length; i++) {
             String[] parts = serverEntries[i].split(":"); // Split each entry into host and port
-            servers.add(new ServerInfo(i, parts[0], Integer.parseInt(parts[1]))); // Add server info to the list
+            servers.add(new ServerInfo(i+1, parts[0], Integer.parseInt(parts[1]))); // Add server info to the list
         }
     }
 
