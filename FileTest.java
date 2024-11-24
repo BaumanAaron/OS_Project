@@ -3,12 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package os_project;
+package OperatingSystems.DistributedMutualExlusion;
 
 import java.io.*;
 
 /**
- *
+ *This was just to test if the file was accessed
  * @author grant
  */
 public class FileTest {
