@@ -1,4 +1,4 @@
-package os_project2;
+package OperatingSystems.DistributedMutualExlusion;
 
 import java.io.*;
 import java.net.*;
