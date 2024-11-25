@@ -1,4 +1,4 @@
-package OperatingSystems.DistributedMutualExlusion;
+package os_project2;
 
 import java.io.*;
 import java.net.*;
@@ -15,7 +15,7 @@ public class Server1 {
     // Lamport Clock
     private static int lamportClock = 0;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         parseServerList(SERVER_LIST);
 
         startConnectionCheckingThread();
@@ -60,7 +60,7 @@ public class Server1 {
                     int receivedClock = Integer.parseInt(parts[0]);
                     String payload = parts[1];
 
-                    lamportClock = Math.max(lamportClock, receivedClock) + 1;
+                    lamportClock = Math.max(lamportClock, receivedClock)+1;
 
                     System.out.println("Server " + SERVER_ID + " received: \"" + payload + "\" with clock " + receivedClock);
                     System.out.println("Updated Lamport Clock: " + lamportClock);
@@ -103,7 +103,8 @@ public class Server1 {
 
     private static void broadcastMessage(String message) {
         synchronized (Server1.class) {
-            lamportClock++;
+            //lamportClock++; //I muted this clock addition because it causes increment of 2
+            //this wouldn't be an issue though, it breaks apart some ties that randomly occur
 
             String timestampedMessage = lamportClock + ":" + message;
 
@@ -158,12 +159,21 @@ public class Server1 {
     /**
      * Simulates 10 clients performing read/write actions.
      */
-    private static void simulateClients() {
+    private static void simulateClients() throws InterruptedException {
         Random random = new Random();
+        //need to wait for message from other servers to update lamport clock
+        Thread.sleep(3000); //set to make sure it recieves broadcasts before client sends request
         for (int i = 1; i <= 10; i++) {
             int clientId = i;
             new Thread(() -> {
                 while (true) {
+                    try { //I moved this to before the action because the first 
+                        //actions were immediate. Clients may not want to instant prompt
+                        Thread.sleep(random.nextInt(3000) + 2000); // Random delay between actions
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    
                     int action = random.nextInt(2); // 0 for read, 1 for write
                     String actionType = action == 0 ? "READ" : "WRITE";
 
@@ -174,11 +184,6 @@ public class Server1 {
                     String message = "Client " + clientId + " performs " + actionType + " operation.";
                     broadcastMessage(message);
 
-                    try {
-                        Thread.sleep(random.nextInt(3000) + 1000); // Random delay between actions
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                 }
             }).start();
         }
