@@ -76,7 +76,7 @@ public class Server1 {
             while (true) {
                 connectToServers();
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(5000); //maybe lower this? but then this would occur very often
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -162,6 +162,7 @@ public class Server1 {
     private static void simulateClients() throws InterruptedException {
         Random random = new Random();
         //need to wait for message from other servers to update lamport clock
+        //this does slow down the initial startup of the server so a differnt method would be better. Maybe lower the connection of server sleep time?
         Thread.sleep(3000); //set to make sure it recieves broadcasts before client sends request
         for (int i = 1; i <= 10; i++) {
             int clientId = i;
