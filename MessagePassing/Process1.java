@@ -1,15 +1,17 @@
-package OperatingSystems.MessagePassing;
+package OperatingSystems.DistributedMutualExlusion.MessagePassing;
 
 import java.io.*;
 import java.net.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.PriorityQueue;
 import java.util.Random;
 
 public class Process1 {
     private static AtomicInteger lamportClock = new AtomicInteger(0);
     private static final int PORT = 5001;
     private static final Random random = new Random();
+    private static PriorityQueue<Request> queue = new PriorityQueue<>();
 
     public static void main(String[] args) throws InterruptedException {
         // Start a thread to listen for incoming messages
@@ -33,14 +35,24 @@ public class Process1 {
                         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                     String message = in.readLine();
-                    // System.out.println("RECIEVED: "+message);
-                    // System.out.println(message.split(":")[0]+" "+message.split(":")[1]+"
-                    // "+message.split(":")[2]+" "+message.split(":")[3]);
-                    if (message.split(":")[0].equals("REQUEST")) {
+                    
+                    String mess_type = message.split(":")[0];
+                    String lampTime = message.split(":")[1];
+                    String port = message.split(":")[2];
+                    String operation = message.split(":")[3];
+
+                    //Adds request from other processes to the queue
+                    queue.add(new Request(Integer.parseInt(lampTime),Integer.parseInt(port),Integer.parseInt(operation)));
+                    for (Request request : queue) {
+                        System.out.println(request);
+                    }
+                    
+                    if (mess_type.equals("REQUEST")) {
                         // Logic to add to a queue
                         // Then check whether critical section is being used
-                        if (message.split(":")[3] == "0") {
+                        if (operation == "0") {
                             // Client want to read
+                            // Do
                             System.out.println("Client from Port " + message.split(":")[2] + " wants to READ");
                         } else {
                             // Client want to write
@@ -62,7 +74,13 @@ public class Process1 {
     private static void sendRequest(int operationType) {
         int timestamp = lamportClock.incrementAndGet();
         String message = "REQUEST:" + timestamp + ":" + PORT + ":" + operationType;
-
+        
+        //Adds this processes request to the queue
+        queue.add(new Request(timestamp, PORT, operationType));
+        for (Request request : queue) {
+            System.out.println(request);
+        }
+        
         try (Socket socket = new Socket("localhost", 5002);
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
