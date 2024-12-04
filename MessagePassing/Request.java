@@ -4,11 +4,13 @@ class Request implements Comparable<Request> {
     private int lamportClock; // Lamport clock for priority
     private int port;         // Port number as an integer
     private int operation;    // Operation type: 0 for read, 1 for write
+    private int client;
 
-    public Request(int lamportClock, int port, int operation) {
+    public Request(int lamportClock, int port, int operation,int client) {
         this.lamportClock = lamportClock;
         this.port = port;
         this.operation = operation;
+        this.client = client;
     }
 
     public int getLamportClock() {
@@ -21,6 +23,10 @@ class Request implements Comparable<Request> {
 
     public int getOperation() {
         return operation;
+    }
+
+    public int getClient(){
+        return client;
     }
 
     @Override
