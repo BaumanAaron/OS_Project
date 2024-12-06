@@ -1,4 +1,4 @@
-package os_project3;
+package OperatingSystems.DistributedMutualExlusion;
 
 import java.util.*;
 import java.io.*;
