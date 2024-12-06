@@ -1,4 +1,4 @@
-package OperatingSystems.DistributedMutualExlusion;
+package os_project3;
 
 import java.io.*;
 import java.net.*;
@@ -15,17 +15,21 @@ public class Process2 {
     private static final Random random = new Random();
     private static PriorityQueue<Request> queue = new PriorityQueue<>();
     private static final Map<Integer, Integer> responses = new HashMap<>();
+    private static final Map<Integer, String> clients = new HashMap<>();
 
     public static void main(String[] args) throws InterruptedException {
+        //create client names
+        clientNames();
+
         // Start a thread to listen for incoming messages
         new Thread(Process2::listen).start();
 
         // Generate 10 random request and client operations
         for (int i = 0; i < 10; i++) {
-            int delay = random.nextInt(10000) + 5000;
+            int delay = random.nextInt(1000) + 1000;
             Thread.sleep(delay);
             int operationType = random.nextBoolean() ? 0 : 1;
-            sendRequest(operationType, i);
+            sendRequest(operationType, clients.get(i));
         }
     }
 
@@ -47,19 +51,12 @@ public class Process2 {
                     
                     if (mess_type.equals("REQUEST")) {
                         //Adds request from other processes to the queue
-                        queue.add(new Request(Integer.parseInt(lampTime),Integer.parseInt(port),Integer.parseInt(operation),Integer.parseInt(client)));
+                        queue.add(new Request(Integer.parseInt(lampTime),Integer.parseInt(port),Integer.parseInt(operation),client));
                         for (Request request : queue) {
                             System.out.println(request);
                         }
-                        /*
-                        if (operation.equals("0")) {
-                            // Client want to read
-                            System.out.println("Client " +client+" from Port " + message.split(":")[2] + " wants to READ");
-                        } else {
-                            // Client want to write
-                            System.out.println("Client " +client+" from Port " + message.split(":")[2] + " wants to WRITE");
-                        }*/
-                        sendResponse(Integer.parseInt(lampTime),Integer.parseInt(port),Integer.parseInt(operation),Integer.parseInt(client));
+                        
+                        sendResponse(Integer.parseInt(lampTime),Integer.parseInt(port),Integer.parseInt(operation),client);
                         
                         synchronized (lamportClock) {
                             int receivedClock = Integer.parseInt(message.split(":")[1]);
@@ -68,13 +65,12 @@ public class Process2 {
                     }
                     
                     else if(mess_type.equals("RESPONSE")){
-                        System.out.println("Server " + (PORT-5000) + " responded.");
+                        System.out.println("Server " + (Integer.parseInt(port)-5000) + " responded."); //the server # is incorrect but not important
                         int lamp = Integer.parseInt(lampTime);
                         responses.replace(lamp, responses.get(lamp), responses.get(lamp)+1);
                         if (responses.get(lamp) == 1/*1connections.size()-1*/){
                             if (queue.peek().getLamportClock() == lamp){
-                                criticalSection(Integer.parseInt(operation),Integer.parseInt(client));
-                                sendRelease(lamp,Integer.parseInt(port),Integer.parseInt(operation),Integer.parseInt(client));
+                                sendCSRequest(lamp, PORT, Integer.parseInt(operation), client);
                             }
                         }
                     }
@@ -91,7 +87,7 @@ public class Process2 {
         }
     }
 
-    private static void sendRequest(int operationType, int client) {
+    private static void sendRequest(int operationType, String client) {
         int timestamp = lamportClock.incrementAndGet();
         String message = "REQUEST:" + timestamp + ":" + PORT + ":" + operationType + ":" + client;
         
@@ -115,7 +111,7 @@ public class Process2 {
         }
     }
     
-    private static void sendResponse(int lampTime, int port, int operation, int client){
+    private static void sendResponse(int lampTime, int port, int operation, String client){
         String message = "RESPONSE:" + lampTime + ":" + port + ":" + operation + ":" + client;
         
         try (Socket socket = new Socket("localhost", port);
@@ -127,17 +123,11 @@ public class Process2 {
             e.printStackTrace();
         }
     }
-    
-    private static void sendRelease(int lampTime, int port, int operation, int client){
-        String message = "RELEASE:" + lampTime + ":" + port + ":" + operation + ":" + client;
+    //this was changed from release
+    private static void sendCSRequest(int lampTime, int port, int operation, String client){
+        String message = "CSREQUEST:" + lampTime + ":" + port + ":" + operation + ":" + client;
         
-        //Removes this processes request from the queue
-        queue.poll();
-        for (Request request : queue) {
-            System.out.println(request);
-        }
-        
-        try (Socket socket = new Socket("localhost", 5001);
+        try (Socket socket = new Socket("localhost", 5006);
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
             out.println(message);
@@ -147,29 +137,16 @@ public class Process2 {
         }
     }
     
-    private static void criticalSection(int operation, int client) throws IOException{
-        String filePath = "centralDatabase/schedule.txt";
-        File file = new File(filePath);
-        if (operation==0){
-            System.out.println("Client " + client + " read from: " + file.getName());
-        }
-        else{
-            writeFile(file);
-            System.out.println("Client " + client + " wrote to: " + file.getName());
-        }
+    private static void clientNames(){
+        clients.put(0, "Henry");
+        clients.put(1, "Max");
+        clients.put(2, "Abby");
+        clients.put(3, "Tatum");
+        clients.put(4, "Alexis");
+        clients.put(5, "Conner");
+        clients.put(6, "Korbyn");
+        clients.put(7, "Kate");
+        clients.put(8, "Isaac");
+        clients.put(9, "Joe");
     }
-    
-    //we should change this a little later (not urgent)
-    public static void writeFile(File file) throws IOException {
-        int counter = 1;
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
-            bw.write("Schedule for Project Demos\n\n");
-            bw.write("Monday\t12/11/2024\t8:30-11:00");
-            while (counter<=8){
-                bw.write((random.nextInt(8)+1)+" Grant & Aaron\n");
-                counter++;
-            }
-        }
-    }
-
 }
