@@ -67,8 +67,9 @@ public class Process1 {
                     else if(mess_type.equals("RESPONSE")){
                         System.out.println("Server " + (Integer.parseInt(port)-5000) + " responded."); //the server # is incorrect but not important
                         int lamp = Integer.parseInt(lampTime);
+                        responses.putIfAbsent(lamp, 0); //THIS WAS ADDED
                         responses.replace(lamp, responses.get(lamp), responses.get(lamp)+1);
-                        if (responses.get(lamp) == 1/*1connections.size()-1*/){ //THIS WILL CHANGE TO connections.size()
+                        if (responses.get(lamp) == 1/*1connections.size()*/){ //THIS WILL CHANGE TO connections.size()
                             if (queue.peek().getLamportClock() == lamp){ //this will become while != (checks if at top of queue)
                                 sendCSRequest(lamp, PORT, Integer.parseInt(operation), client);
                             }
@@ -79,6 +80,17 @@ public class Process1 {
                         System.out.println("Server " + (Integer.parseInt(port)-5000) + " released.");
                         responses.remove(Integer.parseInt(lampTime));
                         queue.poll();
+
+                        //THIS WAS ADDED
+                        if (!queue.isEmpty()){
+                            int a = queue.peek().getPort();
+                            if (a == PORT){
+                                int b = queue.peek().getLamportClock();
+                                if (responses.get(b) == 1/*connections.size()*/){
+                                    sendCSRequest(b, PORT, queue.peek().getOperation(), queue.peek().getClient());
+                                }
+                            }
+                        }
                     }
                 }
             }
