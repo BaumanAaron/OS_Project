@@ -69,7 +69,7 @@ public class Process2 {
                         int lamp = Integer.parseInt(lampTime);
                         responses.putIfAbsent(lamp, 0); //THIS WAS ADDED
                         responses.replace(lamp, responses.get(lamp), responses.get(lamp)+1);
-                        if (responses.get(lamp) == 1/*1connections.size()-1*/){
+                        if (responses.get(lamp) == 1/*1connections.size()*/){
                             if (queue.peek().getLamportClock() == lamp){
                                 sendCSRequest(lamp, PORT, Integer.parseInt(operation), client);
                             }
@@ -86,7 +86,7 @@ public class Process2 {
                             int a = queue.peek().getPort();
                             if (a == PORT){
                                 int b = queue.peek().getLamportClock();
-                                if (responses.get(b) == 1/*connections.size()-1*/){
+                                if (responses.get(b) == 1/*connections.size()*/){
                                     sendCSRequest(b, PORT, queue.peek().getOperation(), queue.peek().getClient());
                                 }
                             }
