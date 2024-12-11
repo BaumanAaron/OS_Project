@@ -1,4 +1,4 @@
-package OperatingSystems.DistributedMutualExlusion;
+package os_project4;
 
 import java.util.*;
 import java.io.*;
@@ -9,11 +9,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Database {
     private static final int PORT = 5006;
     private static final Random random = new Random();
-    private static final File file = new File("centralDatabase/schedule.txt");
+    private static final File file = new File("centralDatabase/banking.txt");
     private static final Semaphore writerLock = new Semaphore(1, true);
     private static final Semaphore mainLock = new Semaphore(1,true);
     private static final Semaphore readerLock = new Semaphore(1,true);
     private static AtomicInteger currentReaders = new AtomicInteger(0);
+    private static final ArrayList<Integer> connectedServers = new ArrayList<>(Arrays.asList(5001, 5002, 5003, 5004, 5005));
     
     public static void main(String[] args) throws InterruptedException{
         new Thread(Database::listen).start();
@@ -43,30 +44,29 @@ public class Database {
             }
         }
          catch (IOException e) {
-            e.printStackTrace();
+             System.err.println("Database disconnected");
         }
     }
     
     private static void broadcastRelease(int lampTime, int port, int operation, String client){
         String message = "RELEASE:" + lampTime + ":" + port + ":" + operation + ":" + client;
         
-        //THIS NEEDS TO BE CHANGED TO BROADCAST FORMAT
-        try (Socket socket = new Socket("localhost", 5001);
+        //broadcast message
+        for (int i=0;i<connectedServers.size();i++){
+            
+            int cPort = connectedServers.get(i);
+            try (Socket socket = new Socket("localhost", cPort);
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-
-            out.println(message);
-            System.out.println(message);
-        } catch (IOException e) {
-            e.printStackTrace();
+                
+                out.println(message);
+            } catch (IOException e) {
+                System.err.println("Couldn't reach server "+(cPort-5000));
+                connectedServers.remove(i); //remove disconnected server
+                i--;//since one less server now
+            }
         }
-        try (Socket socket = new Socket("localhost", 5002);
-                PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-
-            out.println(message);
-            //System.out.println(message);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        
+        System.out.println(message);
     }
     
     private static void CriticalSection(String message){
@@ -82,7 +82,7 @@ public class Database {
                 }
             }).start();
         } else {
-            // Writer
+            //writer
             new Thread(() -> {
                 try {
                     writeFile(client);
@@ -93,15 +93,16 @@ public class Database {
         }
     }
     private static void readFile(String client) throws InterruptedException{
+        //this lock will ensure no readers jump writers in line
         mainLock.acquire(); //wait until first in line
         
-        //if there aren't already readers, if there is writerLock is already acquired
+        //if there aren't already readers (if there is writerLock is already acquired)
         if (currentReaders.get() == 0){
             writerLock.acquire(); //lock out writers
         }
         mainLock.release(); //once into reading, let next wait
         
-        readerLock.acquire();
+        readerLock.acquire(); //this lock ensures currentReaders only gets updated once at a time
         currentReaders.incrementAndGet(); //add a reader
         readerLock.release();
         
@@ -124,10 +125,10 @@ public class Database {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Couldn't read from file");
         }
         
-        Thread.sleep(random.nextInt(2000)+1000);//simulate reading
+        Thread.sleep(random.nextInt(1000)+1000);//simulate reading
         
         if (found){
             System.out.println(client+", your current balance is "+money);
@@ -149,7 +150,7 @@ public class Database {
     
     private static void writeFile(String client) throws InterruptedException{
         mainLock.acquire(); //waits until it is first in line
-        writerLock.acquire(); //no longer waiting
+        writerLock.acquire(); //wait until can start writing
         mainLock.release(); //once writer lock acquired, let next wait
         
         //do writing
@@ -176,10 +177,10 @@ public class Database {
                 lines.add(name + ":" + balance);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Couldn't read from file");
         }
 
-        Thread.sleep(random.nextInt(4000)+1000);//simulate writing
+        Thread.sleep(random.nextInt(2000)+1000);//simulate writing
         
         if (found) { //if person was already in system
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
@@ -189,7 +190,7 @@ public class Database {
                 }
                 System.out.println(targetName + ", your balance has been updated to " + newBalance);
             } catch (IOException e) {
-                e.printStackTrace();
+                System.err.println("Couldn't write to file");
             }
         } else { //if person wasn't already in system, add new entry
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
@@ -197,7 +198,7 @@ public class Database {
                 writer.newLine();
                 System.out.println(targetName + " not found. Adding new entry with balance " + newBalance);
             } catch (IOException e) {
-                e.printStackTrace();
+                System.err.println("Couldn't write to file");
             }
         }
         
@@ -205,4 +206,3 @@ public class Database {
         
     }
 }
-        
